@@ -26,12 +26,18 @@ define('AHAH_PATH_SAVE', 'views_savedsearches_ahah/save');
 /**
  * Implementation of hook_help().
  */
-function views_savedsearches_help($section = '') {
+/**
+ * Implementation of hook_help().
+ */
+function views_savedsearches_help($path, $arg) {
   $output = '';
 
-  switch ($section) {
-    case "admin/help#views_savedsearches":
+  switch ($path) {
+    case 'admin/help#views_savedsearches':
       $output = '<p>'. t("The Views Saved Searches module allows users to save their current configuration of exposed filters for later use.") .'</p>';
+      break;
+    case 'admin/build/views/tools/saved-searches':
+      $output = '<p>'. t('Note: Apologies for the bizarre location of this settings form. We\'re working to place the options for saving exposed filter searches in the main view configuration screen.') .'</p>';
       break;
   }
 
@@ -46,21 +52,25 @@ function views_savedsearches_menu() {
   $items[AHAH_PATH_SAVE] = array(
     'page callback' => 'views_savedsearches_ahah',
     'page arguments' => array('save'),
+    'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
   $items[AHAH_PATH_DELETE] = array(
     'page callback' => 'views_savedsearches_ahah',
     'page arguments' => array('delete'),
+    'access arguments' => array('access content'),
     'type' => MENU_CALLBACK,
   );
-  $items['admin/settings/views-savedsearches'] = array(
-    'title' => t('Views Saved searches settings'),
-    'description' => t('Enable the saved searches form per-view.'),
+  $items['admin/build/views/tools/saved-searches'] = array(
+    'title' => t('Saved Searches'),
+    'description' => t('Configure which views support the saved searches functionality.'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('views_savedsearches_settings'),
     'access arguments' => array('administer site configuration'),
+    'weight' => 5,
+    'type' => MENU_LOCAL_TASK
   );
-  
+
   return $items;
 }
 
@@ -79,18 +89,19 @@ function views_savedsearches_theme() {
  * Per-view enable of the form
  */
 function views_savedsearches_settings() {
-  $result = db_query("SELECT name FROM {views_view}");
-  $form['views_savedsearches'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Enable or disable the saved searches form for the given view'),
-  );
-  while ($view = db_fetch_object($result)) {
-    $form['views_savedsearches']['views_savedsearches_'. $view->name] = array(
-      '#title' => $view->name,
-      '#type' => 'checkbox',
-      '#default_value' => variable_get('views_savedsearches_'. $view->name, FALSE),
-    );
+  $views = views_get_all_views();
+  $options = array();
+  foreach ($views as $view) {
+    $options[$view->name] = $view->name;
   }
+
+  $form['views_savedsearches'] = array(
+    '#title' => t('Enable the saved searches form for the following views'),
+    '#type' => 'checkboxes',
+    '#options' => $options,
+    '#default_value' => variable_get('views_savedsearches', array()),
+  );
+
   return system_settings_form($form);
 }
 
@@ -100,7 +111,7 @@ function views_savedsearches_settings() {
 function views_savedsearches_form_alter(&$form, $form_state, $form_id) {
   // Delete all saved searches whenever an edited View is saved.
   if ($form_id == 'views_edit_view') {
-    $form['#submit']['_views_savedsearches_views_edit_form_submit'] = array();
+    $form['#submit'] = '_views_savedsearches_views_edit_form_submit';
   }
 }
 
@@ -109,24 +120,20 @@ function views_savedsearches_form_alter(&$form, $form_state, $form_id) {
 // Views hooks.
 
 /**
- * Implementation of views_query_alter().
+ * Implementation of hook_views_pre_view().
  */
 function views_savedsearches_views_pre_view(&$view) {
-  if (!variable_get('views_savedsearches_'. $view->name, FALSE)) {
+  $enabled_views = variable_get('views_savedsearches', array());
+  if (empty($enabled_views[$view->name])) {
     return;
   }
+
   $output = '';
+  $output .= '<div id="view-'. form_clean_id($view->name) .'-savedsearches-container" class="views-savedsearches-container clear-block">';
+  $output .= theme('views_savedsearches_container', drupal_clone($view), $_GET);
+  $output .= '</div>';
 
-  // If we're not in the Panels 2 edit content form, then display the saved
-  // searches.
-  if (!(arg(0) == 'panels' && arg(1) == 'ajax') && !(arg(0) == 'admin' && arg(1) == 'build' && strpos(arg(2), 'panel') !== FALSE)) {
-    _views_savedsearches_configure_ahah(form_clean_id($view->name));
-
-    $output .= '<div id="view-'. form_clean_id($view->name) .'-savedsearches-container" class="views-savedsearches-container clear-block">';
-    $output .= theme('views_savedsearches_container', drupal_clone($view), $_GET);
-    $output .= '</div>';
-  }
-  $view->attachment_before = $output;
+  $view->attachment_before = $output . $view->attachment_before;
 }
 
 
@@ -150,27 +157,30 @@ function views_savedsearches_save_search_form($form_state, $view) {
     '#size' => 30,
     '#maxlength' => 30,
   );
-  
+
   $form['submit'] = array(
-    '#type' => 'submit', 
+    '#type' => 'submit',
     '#value' => t('Save this search'),
   );
 
   // Make sure we redirect the user to the current view after he has saved the
   // current search. Without this, he would be redirected to the default view,
   // i.e. without any exposed filters configured.
-  $form['#redirect'][0] = array($_GET['q']) ."?";
+  $form['#redirect'] = array(
+    $_GET['q'],
+    '',
+  );
   $params = $_GET;
-  array_shift($params);
-  foreach($_GET as $k => $v) {
+  unset($params['q']);
+  foreach($params as $k => $v) {
     if (!empty($k) && !empty($v)) {
-      $form['#redirect'][1] .= "$k=$v&";
+      $query[] = $k .'='. $v;
     }
     else {
-      $form['#redirect'][1] .= "$v&";
+      $query[]= $v;
     }
-        
   }
+  $form['#redirect'][1] = implode('&', $query);
 
   return $form;
 }
@@ -216,7 +226,7 @@ function views_savedsearches_delete_search_form($form_state, $view, $options) {
 
   $form['saved_collapse'] = array(
     '#type' => 'fieldset',
-    '#collapsible' => TRUE, 
+    '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#title' => t('Saved searches'),
   );
@@ -229,7 +239,7 @@ function views_savedsearches_delete_search_form($form_state, $view, $options) {
   );
 
   $form['saved_collapse']['delete'] = array(
-    '#type' => 'submit', 
+    '#type' => 'submit',
     '#value' => t('Delete'),
   );
 
@@ -261,13 +271,19 @@ function views_savedsearches_delete_search_form_submit($form, &$form_state) {
 /**
  * AHAH callback; for both the save search and delete saved search form.
  */
-function views_savedsearches_ahah($action) {  
+function views_savedsearches_ahah($action) {
   $vid = $_POST['variables']['vid'];
+  $views_filters_form_values = array();
+
   parse_str($_POST['views_filters_form'], $views_filters_form_values);
   $_POST['variables']['exposed_filters'] = serialize($views_filters_form_values);
 
   // Submit the save form with $_POST instead of $form_values.
-  call_user_func("views_savedsearches_{$action}_search_form_submit", NULL, $_POST);  
+  $form_state = array(
+    'submitted' => TRUE,
+    'values' => $_POST,
+  );
+  call_user_func("views_savedsearches_{$action}_search_form_submit", NULL, $form_state);
 
   // Reset $_POST(), to prevent drupal_get_form() from calling the validate
   // and submit hooks. drupal_get_form will be called at least once for the
@@ -276,9 +292,11 @@ function views_savedsearches_ahah($action) {
 
   // Output.
   $view = views_get_view($vid);
+
+  $output = '';
   $output .= theme('status_messages');
   $output .= theme('views_savedsearches_container', $view, $views_filters_form_values);
-  
+
   print $output;
   exit;
 }
@@ -422,7 +440,8 @@ function views_savedsearches_sid_by_filters($filters) {
 /**
  * Form submission callback; for the views_edit_view form.
  */
-function _views_savedsearches_views_edit_form_submit($form_id, $form_values) {
+function _views_savedsearches_views_edit_form_submit(&$form, &$form_values) {
+  dsm($form_values);
   db_query("DELETE FROM {views_savedsearches} WHERE vid = %d", $form_values['vid']);
 }
 
@@ -496,34 +515,35 @@ function _views_savedsearches_params_to_filters($view, $params) {
  */
 function _views_savedsearches_configure_ahah($view_name) {
   static $required_things_added;
-  
+
   if (!isset($required_things_added)) {
+    drupal_add_js('misc/jquery.form.js');
+    drupal_add_js('misc/collapse.js', 'theme');
     drupal_add_js(drupal_get_path('module', 'views_savedsearches') .'/views_savedsearches.js', 'module');
-    $base_path = base_path();
-    $base_path .= (variable_get('clean_url', 0)) ? '' : '?q=';
-  	drupal_add_js(
-  	  array(
-  	    'views_savedsearches' => array(
-  	      'paths' => array(
-  	        'basePath' => $base_path,
-  	        'deletePath' => AHAH_PATH_DELETE,
-  	        'savePath' => AHAH_PATH_SAVE,
+    drupal_add_js(
+      array(
+        'views_savedsearches' => array(
+          'paths' => array(
+            'deletePath' => AHAH_PATH_DELETE,
+            'savePath' => AHAH_PATH_SAVE,
           ),
-  	    ),
-  	  ),
-  	  'setting'
-  	);  
+        ),
+      ),
+      'setting'
+    );
+
+    $required_things_added = TRUE;
   }
 
   // Add the current view's name to the JS settings.
-	drupal_add_js(
-	  array(
-	    'views_savedsearches' => array(
-	      'view_names' => array($view_name),
-	    ),
-	  ),
-	  'setting'
-	);
+  drupal_add_js(
+    array(
+      'views_savedsearches' => array(
+        'view_names' => array(str_replace('_', '-', $view_name)),
+      ),
+    ),
+    'setting'
+  );
 }
 
 /**
@@ -575,6 +595,9 @@ function _views_savedsearches_saved_searches_to_form_options($saved_searches, $v
 function theme_views_savedsearches_container($view, $views_filters_form_values) {
   $output = '';
 
+  // Add JS necessary for adding AHAH.
+  _views_savedsearches_configure_ahah($view->name);
+
   // Add the CSS and see if the current view matches a sid.
   drupal_add_css(drupal_get_path('module', 'views_savedsearches') .'/views_savedsearches.css', 'module');
   $view_filters = _views_savedsearches_params_to_filters($view, $views_filters_form_values);
@@ -584,7 +607,7 @@ function theme_views_savedsearches_container($view, $views_filters_form_values) 
   $output .= '<div class="views-savedsearches-list-ahah">';
   $output .= theme('views_savedsearches_list', $view, $current_view_matches_sid);
   $output .= '</div>';
-  
+
   // The save search form.
   $output .= '<div class="views-savedsearches-save-ahah">';
   if (!$current_view_matches_sid && count($view_filters)) {
@@ -613,7 +636,7 @@ function theme_views_savedsearches_list($view, $current_view_matches_sid) {
   $options = _views_savedsearches_saved_searches_to_form_options($saved_searches, $view->get_path(), $current_view_matches_sid);
 
   // Display a list of saved searches (if there are any) and allow the user to
-  // delete any of them.  
+  // delete any of them.
   if (count($options)) {
     $output .= drupal_get_form('views_savedsearches_delete_search_form', $view, $options, $current_view_matches_sid);
   }

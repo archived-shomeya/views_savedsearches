@@ -21,9 +21,12 @@ Dependencies
 Installation
 ------------
 1) Place this module directory in your modules folder (this will usually be
-"sites/all/modules/").
+   "sites/all/modules/").
 
 2) Enable the module.
+
+3) Configure which views will have the Saved Searches functionality at
+   admin/build/views/tools/saved-searches.
 
 
 Sponsor

@@ -10,22 +10,27 @@ function views_savedsearches_schema() {
       'sid' => array(
         'type' => 'int',
         'unsigned' => TRUE,
-        'not null' => TRUE),
+        'not null' => TRUE,
+      ),
       'uid' => array(
         'type' => 'int',
         'unsigned' => TRUE,
-        'not null' => TRUE),
+        'not null' => TRUE,
+      ),
       'vid' => array(
         'type' => 'int',
         'unsigned' => TRUE,
-        'not null' => TRUE),
+        'not null' => TRUE,
+      ),
       'name' => array(
         'type' => 'varchar',
         'length' => '30',
-        'not null' => TRUE),
+        'not null' => TRUE,
+      ),
       'filters' => array(
         'type' => 'text',
-        'size' => 'big'),
+        'size' => 'big',
+      ),
     ),
     'primary key' => array('sid'),
   );
@@ -44,4 +49,5 @@ function views_savedsearches_install() {
  */
 function views_savedsearches_uninstall() {
   drupal_uninstall_schema('views_savedsearches');
+  variable_del('views_savedsearches');
 }
