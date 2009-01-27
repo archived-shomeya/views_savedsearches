@@ -483,26 +483,23 @@ function _views_savedsearches_filters_to_params($filters) {
  * Helper function; deconstructs a params string from to an array of filters.
  *
  * @param $params
- *  A string of params (for example a string creaed by the "formSerialize"
- *  method of the jQuery Form Plugin).
+ *  Am array of current parameters in the query string.
  * @return
  *  An array containing filter name - filter value(s) pairs.
  */
 function _views_savedsearches_params_to_filters($view, $params) {
   $filters = array();
-  $filter_names = array();
-  foreach ($view->display as $display) {
-    if (isset($display->display_options['filters'])) {
-    $filter_names = array_merge($filter_names, array_keys($display->display_options['filters']));
-    }
-  }
-  if (is_array($params)) {
-    foreach ($params as $key => $value) {
-      if (in_array($key, $filter_names)) {
-        $filters[$key] = $value;
+
+  $display = $view->display[$view->current_display];
+  if (isset($display->display_options['filters'])) {
+    foreach ($display->display_options['filters'] as $filter) {
+      if (isset($filter['expose']) && isset($params[$filter['expose']['identifier']])) {
+        $query_id = $filter['expose']['identifier'];
+        $filters[$query_id] = $params[$query_id];
       }
     }
   }
+
   return $filters;
 }
 
