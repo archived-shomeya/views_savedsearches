@@ -34,12 +34,8 @@ Sponsor
 Paul Ektov of http://autobin.ru.
 
 
-Author
-------
-Wim Leers
+Authors
+-------
+Wim Leers (Original Author) - http://wimleers.com/work
+Nathan Haug (Drupal 6 Maintainer) - http://quicksketch.org
 
-* mail: work@wimleers.com
-* website: http://wimleers.com/work
-
-The author can be contacted for paid customizations of this module as well as
-Drupal consulting, development and installation.
