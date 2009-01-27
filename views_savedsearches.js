@@ -11,20 +11,12 @@ ViewsSavedSearches.baseContext = function() {
   return $baseContext;
 };
 
-ViewsSavedSearches.attachBindings = function(firstTime) {
+ViewsSavedSearches.attachBindings = function() {
   var view_name;
   var i;
 
   for (i = 0; i < Drupal.settings.views_savedsearches.view_names.length; i++) {
     view_name = Drupal.settings.views_savedsearches.view_names[i];
-
-    if (firstTime) {
-      // Move the saved searches container below the exposed filters.
-      $('div#view-'+ view_name +'-views-savedsearches-container-clear-block', ViewsSavedSearches.baseContext)
-      .add('div#view-'+ view_name +'-savedsearches-container')
-      .remove()
-      .insertAfter('div.view-'+ view_name +' form');
-    }
 
     // Attach the bindings.
     ViewsSavedSearches.bindings(view_name);
@@ -94,6 +86,5 @@ ViewsSavedSearches.bindings = function(view_name) {
 }
 
 Drupal.behaviors.viewsSavedSearches = function(context) {
-  var firstTime = (context == window.document);
-  var obj = ViewsSavedSearches.attachBindings(firstTime);
+  ViewsSavedSearches.attachBindings();
 }
