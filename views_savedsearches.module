@@ -410,6 +410,11 @@ function views_savedsearches_count($uid = NULL, $vid = NULL) {
  *   A saved search id.
  */
 function views_savedsearches_delete($sid) {
+  if (function_exists('notifications_delete_subscriptions') && module_exists('notifications_views_savedsearches')) {
+    notifications_delete_subscriptions(array('type' => 'savedsearch'), array('sid' => $sid));
+    db_query("DELETE FROM {notifications_views_savedsearches} WHERE sid = %d", $sid);
+    db_query("DELETE FROM {notifications_views_savedsearches_seen} WHERE sid = %d", $sid);
+  }
   db_query("DELETE FROM {views_savedsearches} WHERE sid = %d", $sid);
 }
 
