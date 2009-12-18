@@ -28,14 +28,19 @@ Installation
 3) Configure which views will have the Saved Searches functionality at
    admin/build/views/tools/saved-searches.
 
+Known issues
+------------
+Clean URL is neccessary to use the module.
 
 Sponsor
 -------
 Paul Ektov of http://autobin.ru.
+Inovae: http://agenceinovae.com/
 
 
 Authors
 -------
 Wim Leers (Original Author) - http://wimleers.com/work
 Nathan Haug (Drupal 6 Maintainer) - http://quicksketch.org
+Aron Novak (current maintainer) @ Inovae
 

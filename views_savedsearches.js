@@ -50,7 +50,7 @@ ViewsSavedSearches.bindings = function(view_name) {
 
     // The form is validated, it will be submitted. Now let's add the form
     // data of the views filters form, to save it.
-    formData.push({ name: 'views_filters_form', value: $('form#views-filters').formSerialize() });
+    formData.push({ name: 'views_filters_form', value: $('.view-'+ view_name+ ' .view-filters form').formSerialize() });
 
     return true;
   }
@@ -60,7 +60,7 @@ ViewsSavedSearches.bindings = function(view_name) {
 
   // List (with delete saved search form).
   var deleteOptions = {
-    url: Drupal.settings.basePath + Drupal.settings.views_savedsearches.paths.deletePath,
+    url: Drupal.settings.views_savedsearches.paths.deletePath,
     beforeSubmit: ahahDeleteBeforeSubmit,
     target: container,
     success: function(response, status) {
@@ -73,7 +73,7 @@ ViewsSavedSearches.bindings = function(view_name) {
 
   // Save search form.
   var saveOptions = {
-    url: Drupal.settings.basePath + Drupal.settings.views_savedsearches.paths.savePath,
+    url: Drupal.settings.views_savedsearches.paths.savePath,
     beforeSubmit: ahahSaveBeforeSubmit,
     target: container,
     success: function(response, status) {
