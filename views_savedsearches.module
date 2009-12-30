@@ -366,7 +366,22 @@ function views_savedsearches_load($sid) {
 function views_savedsearches_load_multiple($uid = NULL, $vid = NULL) {
   $saved_searches = array();
 
-  $result = db_query("SELECT sid FROM {views_savedsearches} WHERE uid = %d AND vid = %d ORDER BY name", $uid, $vid);
+  $query = 'SELECT sid FROM {views_savedsearches} ';
+  $sort = ' ORDER BY name';
+
+  if ($uid > 0 && $vid > 0) {
+    $result = db_query("$query WHERE uid = %d AND vid = %d $sort", $uid, $vid);
+  }
+  elseif ($uid > 0) {
+    $result = db_query("$query WHERE uid = %d $sort", $uid);
+  }
+  elseif ($vid > 0) {
+    $result = db_query("$query WHERE vid = %d $sort", $vid);
+  }
+  else {
+    $result = db_query($query . $sort);
+  }
+
   while ($row = db_fetch_object($result)) {
     $saved_searches[$row->sid] = views_savedsearches_load($row->sid);
   }
