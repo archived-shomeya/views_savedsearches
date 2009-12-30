@@ -28,6 +28,9 @@ Installation
 3) Configure which views will have the Saved Searches functionality at
    admin/build/views/tools/saved-searches.
 
+4) Configure which roles (users) are allowed to use the functionality at
+   admin/user/permissions - 'use views savedsearch'
+
 Known issues
 ------------
 Clean URL is neccessary to use the module.
