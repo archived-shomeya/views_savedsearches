@@ -74,6 +74,9 @@ function views_savedsearches_menu() {
   return $items;
 }
 
+/**
+ * Implementation of hook_theme().
+ */
 function views_savedsearches_theme() {
   return array(
     'views_savedsearches_container' => array(
@@ -83,6 +86,13 @@ function views_savedsearches_theme() {
       'arguments' => array('view', 'current_view_matches_sid'),
     ),
   );
+}
+
+/**
+ * Implementation of hook_perm().
+ */
+function views_savedsearches_perm() {
+  return array('use views savedsearch');
 }
 
 /**
@@ -146,21 +156,23 @@ function views_savedsearches_form_alter(&$form, $form_state, $form_id) {
  * Implementation of hook_views_pre_view().
  */
 function views_savedsearches_views_pre_view(&$view) {
-  $enabled_views = variable_get('views_savedsearches', array());
-  if (empty($enabled_views[$view->name])) {
-    return;
+  if (user_access('use views savedsearch')) {
+    $enabled_views = variable_get('views_savedsearches', array());
+    if (empty($enabled_views[$view->name])) {
+      return;
+    }
+    
+    $output = '';
+    $output .= '<div id="view-'. form_clean_id($view->name) .'-savedsearches-container" class="views-savedsearches-container clear-block">';
+    $output .= theme('views_savedsearches_container', drupal_clone($view), $_GET);
+    $output .= '</div>';
+
+    if (!variable_get('clean_url', FALSE)) {
+      drupal_set_message(t('Views SavedSearches require Clean URLs, please <a href="@enable">enable it</a>.', array('@enable' => url('admin/settings/clean-urls'))), 'warning');
+    }
+
+    $view->attachment_before = $output . $view->attachment_before;
   }
-
-  $output = '';
-  $output .= '<div id="view-'. form_clean_id($view->name) .'-savedsearches-container" class="views-savedsearches-container clear-block">';
-  $output .= theme('views_savedsearches_container', drupal_clone($view), $_GET);
-  $output .= '</div>';
-
-  if (!variable_get('clean_url', FALSE)) {
-    drupal_set_message(t('Views SavedSearches require Clean URLs, please <a href="@enable">enable it</a>.', array('@enable' => url('admin/settings/clean-urls'))), 'warning');
-  }
-
-  $view->attachment_before = $output . $view->attachment_before;
 }
 
 
