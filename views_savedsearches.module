@@ -322,7 +322,12 @@ function views_savedsearches_ahah($action) {
     'submitted' => TRUE,
     'values' => $_POST,
   );
-  call_user_func("views_savedsearches_{$action}_search_form_submit", NULL, $form_state);
+  if ($action == 'delete') {
+    views_savedsearches_delete_search_form_submit(NULL, $form_state);
+  }
+  elseif ($action == 'save') {
+    views_savedsearches_save_search_form_submit(NULL, $form_state);
+  }
 
   // Reset $_POST(), to prevent drupal_get_form() from calling the validate
   // and submit hooks. drupal_get_form will be called at least once for the
@@ -520,11 +525,25 @@ function _views_savedsearches_filters_to_params($filters) {
     foreach ($filters as $filter_name => $filter_value) {
       // Distinction between multiple-value filters and single-value filters.
       if (is_array($filter_value)) {
-        foreach ($filter_value as $value) {
+        foreach ($filter_value as $key => $value) {
           if (strlen($query) > 0) {
             $query .= '&';
           }
-          $query .= drupal_urlencode($filter_name) . drupal_urlencode('[]') .'='. drupal_urlencode($value);
+          if (!is_array($value)) {
+            $query .= drupal_urlencode($filter_name) . drupal_urlencode('[]') .'='. drupal_urlencode($value);
+          }
+          else {
+            // Date-style parameter, like date_filter[value][date]=2009-05-11 in the URL encoded
+            $arr = drupal_urlencode('['. $key .']');
+            $open = drupal_urlencode('[');
+            $close = drupal_urlencode(']');
+            foreach ($value as $k => $v) {
+              if (strlen($query) > 0) {
+                $query .= '&';
+              }
+              $query .= $filter_name . $arr . $open . $k . $close . '=' . $v;
+            }
+          }
         }
       }
       else {
