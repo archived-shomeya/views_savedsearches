@@ -22,9 +22,15 @@ function views_savedsearches_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
+      'display' => array(
+        'type' => 'varchar',
+        'length' => '32',
+        'not null' => TRUE,
+      ),
       'name' => array(
         'type' => 'varchar',
         'length' => '30',
+        'default' => '',
         'not null' => TRUE,
       ),
       'filters' => array(
@@ -35,6 +41,12 @@ function views_savedsearches_schema() {
     'primary key' => array('sid'),
   );
   return $schema;
+}
+
+function views_savedsearches_update_6101() {
+  $ret = array();
+  db_add_field($ret, 'views_savedsearches', 'display', array('type' => 'varchar', 'length' => '32', 'not null' => TRUE, 'default' => ''));
+  return $ret;
 }
 
 /**

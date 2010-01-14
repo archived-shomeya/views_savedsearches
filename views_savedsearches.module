@@ -148,6 +148,46 @@ function views_savedsearches_form_alter(&$form, $form_state, $form_id) {
   }
 }
 
+/**
+ * Implementation of hook_block().
+ */
+function views_savedsearches_block($op = 'list', $delta = 0, $edit = array()) {
+  global $user;
+  
+  if ('list' == $op) {
+    $blocks = array();
+    $blocks['views-savedsearches-per-user'] = array(
+      'info' => t('My views saved searches'),
+    );
+    return $blocks;
+  }
+  elseif ('view' == $op) {
+    $block = array();
+    switch ($delta) {
+      case 'views-savedsearches-per-user':
+        $uid = (arg(0) == 'user' && is_numeric(arg(1))) ? arg(1) : $user->uid;
+        $saved_searches = views_savedsearches_load_multiple($uid, 1);
+        foreach ($saved_searches as $sid => $saved_search) {
+          if (!empty($saved_search->display)) {
+            $query = _views_savedsearches_filters_to_params($saved_search->filters);
+            $view = views_get_view($saved_search->vid);
+            if (isset($view->display[$saved_search->display]->display_options['path'])) {
+              $path = $view->display[$saved_search->display]->display_options['path'];
+              if (!empty($path)) {
+                $items[] = l($saved_search->name, $path, array('query' => $query));
+              }
+            }
+          }
+        }
+        if (count($items) > 0) {
+          $block = array('subject' => 'My saved searches', 'content' => theme('item_list', $items));
+        }
+
+        break;
+    }
+    return $block;
+  }
+}
 
 //----------------------------------------------------------------------------
 // Views hooks.
@@ -186,6 +226,7 @@ function views_savedsearches_save_search_form($form_state, $view) {
   // Save some properties about the current view.
   $form['variables']['#tree'] = TRUE;
   $form['variables']['vid'] = array('#type' => 'hidden', '#value' => $view->vid);
+  $form['variables']['display'] = array('#type' => 'hidden', '#value' => $view->current_display);
   // This is needed for the non-AHAH form submit.
   $form['variables']['exposed_filters'] = array('#type' => 'value', '#value' => serialize(_views_savedsearches_params_to_filters($view, $_GET)));
 
@@ -247,6 +288,7 @@ function views_savedsearches_save_search_form_submit($form, &$form_state) {
   $saved_search->sid = 'new';
   $saved_search->uid = $user->uid;
   $saved_search->vid = $form_state['values']['variables']['vid'];
+  $saved_search->display = $form_state['values']['variables']['display'];
   $saved_search->name = $form_state['values']['name'];
   $saved_search->filters = $form_state['values']['variables']['exposed_filters'];
 
@@ -469,10 +511,11 @@ function views_savedsearches_save($saved_search) {
   }
   else {
     $saved_search->sid = db_result(db_query('select MAX(sid) + 1 from {views_savedsearches}'));
-    db_query("INSERT INTO {views_savedsearches} (sid, uid, vid, name, filters) VALUES(%d, %d, %d, '%s', '%s')",
+    db_query("INSERT INTO {views_savedsearches} (sid, uid, vid, display, name, filters) VALUES(%d, %d, %d, '%s', '%s', '%s')",
       $saved_search->sid,
       $saved_search->uid,
       $saved_search->vid,
+      $saved_search->display,
       $saved_search->name,
       $saved_search->filters
     );
