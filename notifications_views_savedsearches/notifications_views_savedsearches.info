@@ -1,6 +1,6 @@
 ; $Id$
 name = Views Saved Searches Subscriptions
-description = Allows users to subscribe to feeds and be notified when they are updated
+description = Allows users to subscribe to views saved searches and be notified when they are updated
 package = "Notifications"
 dependencies[] = notifications
 dependencies[] = views_savedsearches

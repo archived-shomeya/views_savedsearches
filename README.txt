@@ -18,6 +18,10 @@ Dependencies
 ------------
 * Views (http://drupal.org/project/views)
 
+Submodules
+----------
+For Notifications integration, enable Views Saved Searches Subscriptions module.
+
 Installation
 ------------
 1) Place this module directory in your modules folder (this will usually be
