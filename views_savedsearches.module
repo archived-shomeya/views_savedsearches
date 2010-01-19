@@ -153,7 +153,7 @@ function views_savedsearches_form_alter(&$form, $form_state, $form_id) {
  */
 function views_savedsearches_block($op = 'list', $delta = 0, $edit = array()) {
   global $user;
-  
+
   if ('list' == $op) {
     $blocks = array();
     $blocks['views-savedsearches-per-user'] = array(
@@ -201,7 +201,7 @@ function views_savedsearches_views_pre_view(&$view) {
     if (empty($enabled_views[$view->name])) {
       return;
     }
-    
+
     $output = '';
     $output .= '<div id="view-'. form_clean_id($view->name) .'-savedsearches-container" class="views-savedsearches-container clear-block">';
     $output .= theme('views_savedsearches_container', drupal_clone($view), $_GET);
@@ -252,11 +252,12 @@ function views_savedsearches_save_search_form($form_state, $view) {
   );
   $params = $_GET;
   unset($params['q']);
-  foreach($params as $k => $v) {
-    if (!empty($k) && !empty($v)) {
+  $query = array();
+  foreach ($params as $k => $v) {
+    if (drupal_strlen($k) > 0 && drupal_strlen($v) > 0) {
       $query[] = $k .'='. $v;
     }
-    else {
+    elseif (drupal_strlen($v) > 0) {
       $query[]= $v;
     }
   }
@@ -269,10 +270,10 @@ function views_savedsearches_save_search_form($form_state, $view) {
  * Form validation callback; for views_savedsearches_save_search_form.
  */
 function views_savedsearches_save_search_form_validate($form, &$form_state) {
-  if (strlen($form_state['values']['name']) == 0) {
+  if (drupal_strlen($form_state['values']['name']) == 0) {
     form_set_error('name', t('You must enter a name for this saved search.'));
   }
-  elseif (strlen($form_state['values']['name']) > 30) {
+  elseif (drupal_strlen($form_state['values']['name']) > 30) {
     form_set_error('name', t('Your name for this saved search is too long. The name for a saved search can not be longer than 128 characters.'));
   }
 }
@@ -284,7 +285,7 @@ function views_savedsearches_save_search_form_submit($form, &$form_state) {
   global $user;
 
   // Create a new saved search object.
-  $saved_search = new StdClass();
+  $saved_search = new stdClass();
   $saved_search->sid = 'new';
   $saved_search->uid = $user->uid;
   $saved_search->vid = $form_state['values']['variables']['vid'];
@@ -400,7 +401,7 @@ function views_savedsearches_ahah($action) {
  *   A saved search object.
  */
 function views_savedsearches_load($sid) {
-  $saved_search = new StdClass();
+  $saved_search = new stdClass();
   $saved_search->sid = $sid;
 
   $result = db_query("SELECT * FROM {views_savedsearches} WHERE sid = %d", $sid);
@@ -510,7 +511,7 @@ function views_savedsearches_save($saved_search) {
     );
   }
   else {
-    $saved_search->sid = db_result(db_query('select MAX(sid) + 1 from {views_savedsearches}'));
+    $saved_search->sid = db_result(db_query('SELECT MAX(sid) + 1 from {views_savedsearches}'));
     db_query("INSERT INTO {views_savedsearches} (sid, uid, vid, display, name, filters) VALUES(%d, %d, %d, '%s', '%s', '%s')",
       $saved_search->sid,
       $saved_search->uid,
@@ -569,7 +570,7 @@ function _views_savedsearches_filters_to_params($filters) {
       // Distinction between multiple-value filters and single-value filters.
       if (is_array($filter_value)) {
         foreach ($filter_value as $key => $value) {
-          if (strlen($query) > 0) {
+          if (drupal_strlen($query) > 0) {
             $query .= '&';
           }
           if (!is_array($value)) {
@@ -581,7 +582,7 @@ function _views_savedsearches_filters_to_params($filters) {
             $open = drupal_urlencode('[');
             $close = drupal_urlencode(']');
             foreach ($value as $k => $v) {
-              if (strlen($query) > 0) {
+              if (drupal_strlen($query) > 0) {
                 $query .= '&';
               }
               $query .= $filter_name . $arr . $open . $k . $close . '=' . $v;
@@ -590,7 +591,7 @@ function _views_savedsearches_filters_to_params($filters) {
         }
       }
       else {
-        if (strlen($query) > 0) {
+        if (drupal_strlen($query) > 0) {
           $query .= '&';
         }
         $query .= drupal_urlencode($filter_name) .'='. drupal_urlencode($filter_value);
@@ -615,7 +616,7 @@ function _views_savedsearches_params_to_filters($view, $params) {
     $exposed = $view->get_exposed_input();
     if (!empty($exposed)) {
       foreach ($exposed as $key => $value) {
-        if (!empty($value)) {
+        if (drupal_strlen($value) > 0) {
           $filters[$key] = $value;
         }
       }

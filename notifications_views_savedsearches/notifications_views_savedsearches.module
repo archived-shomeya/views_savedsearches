@@ -50,11 +50,11 @@ function notifications_views_savedsearches_form_alter(&$form, $form_state, $form
  * Implementation of hook_theme().
  */
 function notifications_views_savedsearches_theme() {
-   return array(
+  return array(
     'notifications_views_savedsearches_links' => array(
-      'arguments' => array('links' => NULL),
-    ));
- }
+    'arguments' => array('links' => NULL),
+  ));
+}
 
 /**
  * Menu access callback.
@@ -191,7 +191,7 @@ function notifications_views_savedsearches_cron() {
         else {
           $item = (array) $item;
           foreach ($item as $k => $v) {
-            if (!is_numeric($v) && strlen($v) > 2) {
+            if (!is_numeric($v) && drupal_strlen($v) > 2) {
               $titles[] = $v;
               break;
             }
@@ -310,7 +310,7 @@ function notifications_views_savedsearches_token_values($type, $object = NULL, $
       case 'viewsnewitem':
       // FIXME this should be loaded elsewhere
         $vs = views_savedsearches_load($object->params['sid']);
-	$values = array();
+        $values = array();
         $values['savedsearches-title'] = $vs->name;
         $values['views-items'] = $object->params['items'];
         return $values;

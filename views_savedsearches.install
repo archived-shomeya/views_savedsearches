@@ -2,6 +2,11 @@
 // $Id$
 
 /**
+ * @file
+ * Install file for Views Saved Searches module.
+ */
+
+/**
  * Implementation of hook_schema().
  */
 function views_savedsearches_schema() {
