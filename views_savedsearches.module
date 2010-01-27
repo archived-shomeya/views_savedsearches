@@ -529,14 +529,21 @@ function views_savedsearches_save($saved_search) {
  *
  * @param $filters
  *   An array container filter name - filter value(s) pairs.
+ * @param $uid
+ *   User id to filter by
  * @return
  *   A saved search id.
  */
-function views_savedsearches_sid_by_filters($filters) {
+function views_savedsearches_sid_by_filters($filters, $uid = FALSE) {
   $sid = FALSE;
 
   if (count($filters)) {
-    $sid = db_result(db_query("SELECT sid FROM {views_savedsearches} WHERE filters = '%s'", serialize($filters)));
+    if ($uid === FALSE) {
+      $sid = db_result(db_query("SELECT sid FROM {views_savedsearches} WHERE filters = '%s'", serialize($filters)));
+    }
+    else {
+      $sid = db_result(db_query("SELECT sid FROM {views_savedsearches} WHERE filters = '%s' AND uid = %d", serialize($filters), $uid));
+    }
   }
   return ($sid === FALSE ? -1 : $sid);
 }
@@ -712,6 +719,7 @@ function _views_savedsearches_saved_searches_to_form_options($saved_searches, $v
  *   forms).
  */
 function theme_views_savedsearches_container($view, $views_filters_form_values) {
+  global $user;
   $output = '';
 
   // Add JS necessary for adding AHAH.
@@ -720,7 +728,7 @@ function theme_views_savedsearches_container($view, $views_filters_form_values) 
   // Add the CSS and see if the current view matches a sid.
   drupal_add_css(drupal_get_path('module', 'views_savedsearches') .'/views_savedsearches.css', 'module');
   $view_filters = _views_savedsearches_params_to_filters($view, $views_filters_form_values);
-  $current_view_matches_sid = views_savedsearches_sid_by_filters($view_filters);
+  $current_view_matches_sid = views_savedsearches_sid_by_filters($view_filters, $user->uid);
 
   // The list (also delete saved search form).
   $output .= '<div class="views-savedsearches-list-ahah">';

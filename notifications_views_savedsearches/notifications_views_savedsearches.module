@@ -161,52 +161,57 @@ function notifications_views_savedsearches_cron() {
     $view_name = db_result(db_query("SELECT name FROM {views_view} WHERE vid = %d", $vs->vid));
     $view = views_get_view($view_name);
 
-    // Apply $vs->filters
-    $view->set_exposed_input($vs->filters);
+    if (is_object($view) && is_object($vs)) {
+      if ($view instanceof view) {
 
-    // Run the query
-    $view->execute();
-    // Get ids in the views from the past
-    $current_ids = notifications_views_savedsearches_get_ids($vs->sid);
-    $new_items = array();
-    foreach ($view->result as $item) {
-      $identifier = array_shift(get_object_vars($item));
-      if (!in_array($identifier, $current_ids)) {
-      // Send out a notification
-        $current_ids[] = $identifier;
-        $new_items[] = $item;
-      }
-    }
-    notifications_views_savedsearches_store_ids($vs->sid, $current_ids);
-    if (count($new_items) > 0 && $already_seen) {
-    // Generate list of titles
-      $titles = array();
-      foreach ($new_items as $item) {
-      // We're working with nodes, send out the teaser
-        if (isset($item->nid)) {
-          $node = node_load($item->nid);
-          $titles[] = node_view($node, TRUE, FALSE, FALSE);
-        }
-        // Something weird, user, other object, find the first textual field, no way to generate something nice
-        else {
-          $item = (array) $item;
-          foreach ($item as $k => $v) {
-            if (!is_numeric($v) && drupal_strlen($v) > 2) {
-              $titles[] = $v;
-              break;
-            }
+        // Apply $vs->filters
+        $view->set_exposed_input($vs->filters);
+
+        // Run the query
+        $view->execute();
+        // Get ids in the views from the past
+        $current_ids = notifications_views_savedsearches_get_ids($vs->sid);
+        $new_items = array();
+        foreach ($view->result as $item) {
+          $identifier = array_shift(get_object_vars($item));
+          if (!in_array($identifier, $current_ids)) {
+            // Send out a notification
+            $current_ids[] = $identifier;
+            $new_items[] = $item;
           }
         }
-      }
-      $event = array(
+        notifications_views_savedsearches_store_ids($vs->sid, $current_ids);
+        if (count($new_items) > 0 && $already_seen) {
+          // Generate list of titles
+          $titles = array();
+          foreach ($new_items as $item) {
+            // We're working with nodes, send out the teaser
+            if (isset($item->nid)) {
+              $node = node_load($item->nid);
+              $titles[] = node_view($node, TRUE, FALSE, FALSE);
+            }
+            // Something weird, user, other object, find the first textual field, no way to generate something nice
+            else {
+              $item = (array) $item;
+              foreach ($item as $k => $v) {
+                if (!is_numeric($v) && drupal_strlen($v) > 2) {
+                  $titles[] = $v;
+                  break;
+                }
+              }
+            }
+          }
+          $event = array(
           'module' => 'notifications_views_savedsearches',
           'uid' => 0,
           'type' => 'viewsnewitem',
           'action' => 'new',
           'subscription' => $vs,
           'params' => array('items' => theme('item_list', $titles), 'sid' => $vs->sid),
-      );
-      notifications_event($event);
+          );
+          notifications_event($event);
+        }
+      }
     }
   }
 }
