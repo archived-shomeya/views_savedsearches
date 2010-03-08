@@ -261,7 +261,9 @@ function views_savedsearches_save_search_form($form_state, $view) {
       $query[]= $v;
     }
   }
-  $form['#redirect'][1] = implode('&', $query);
+  if (!empty($query)) {
+    $form['#redirect'][1] = implode('&', $query);
+  }
 
   return $form;
 }
