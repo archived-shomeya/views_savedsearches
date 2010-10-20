@@ -55,6 +55,21 @@ function views_savedsearches_update_6101() {
 }
 
 /**
+ * Add public flag to saved searches.
+ */
+function views_savedsearches_update_6102() {
+  $field = array(
+    'type' => 'int',
+    'default' => 0,
+    'size' => 'tiny',
+    'description' => 'A boolean to indicate whether this saved search is public.'
+  );
+  $ret = array();
+  db_add_field($ret, 'views_savedsearches', 'public', $field);
+  return $ret;
+}
+
+/**
  * Implementation of hook_install().
  */
 function views_savedsearches_install() {

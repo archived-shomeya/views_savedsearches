@@ -238,6 +238,11 @@ function views_savedsearches_save_search_form($form_state, $view) {
     '#maxlength' => 30,
   );
 
+  $form['public'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Make Public'),
+  );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save this search'),
@@ -292,6 +297,7 @@ function views_savedsearches_save_search_form_submit($form, &$form_state) {
   $saved_search->uid = $user->uid;
   $saved_search->vid = $form_state['values']['variables']['vid'];
   $saved_search->display = $form_state['values']['variables']['display'];
+  $saved_search->public = $form_state['values']['public'];
   $saved_search->name = $form_state['values']['name'];
   $saved_search->filters = $form_state['values']['variables']['exposed_filters'];
 
@@ -509,18 +515,21 @@ function views_savedsearches_save($saved_search) {
       $saved_search->uid,
       $saved_search->vid,
       $saved_search->name,
+      $saved_search->filters,
+      $saved_search->public,
       $saved_search->sid
     );
   }
   else {
     $saved_search->sid = db_result(db_query('SELECT MAX(sid) + 1 from {views_savedsearches}'));
-    db_query("INSERT INTO {views_savedsearches} (sid, uid, vid, display, name, filters) VALUES(%d, %d, %d, '%s', '%s', '%s')",
+    db_query("INSERT INTO {views_savedsearches} (sid, uid, vid, display, name, filters, public) VALUES(%d, %d, %d, '%s', '%s', '%s', %d)",
       $saved_search->sid,
       $saved_search->uid,
       $saved_search->vid,
       $saved_search->display,
       $saved_search->name,
-      $saved_search->filters
+      $saved_search->filters,
+      $saved_search->public
     );
   }
   return $saved_search->sid;
