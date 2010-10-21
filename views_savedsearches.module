@@ -166,7 +166,7 @@ function views_savedsearches_block($op = 'list', $delta = 0, $edit = array()) {
     switch ($delta) {
       case 'views-savedsearches-per-user':
         $uid = (arg(0) == 'user' && is_numeric(arg(1))) ? arg(1) : $user->uid;
-        $saved_searches = views_savedsearches_load_multiple($uid, 1);
+        $saved_searches = views_savedsearches_load_multiple($uid);
         foreach ($saved_searches as $sid => $saved_search) {
           if (!empty($saved_search->display)) {
             $query = _views_savedsearches_filters_to_params($saved_search->filters);
