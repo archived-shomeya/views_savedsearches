@@ -66,7 +66,7 @@ function views_savedsearches_menu() {
     'description' => t('Configure which views support the saved searches functionality.'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('views_savedsearches_settings'),
-    'access arguments' => array('administer site configuration'),
+    'access arguments' => array('manage views saved searches'),
     'weight' => 5,
     'type' => MENU_LOCAL_TASK
   );
@@ -74,7 +74,8 @@ function views_savedsearches_menu() {
     'title' => 'Delete Saved Search',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('views_savedsearches_delete_search_form', 2),
-    'access arguments' => array('use views savedsearch'),
+    'access callback' => 'views_savedsearches_perm_delete',
+    'access arguments' => array(2),
     'type' => MENU_CALLBACK,
   );
   return $items;
@@ -98,7 +99,20 @@ function views_savedsearches_theme() {
  * Implementation of hook_perm().
  */
 function views_savedsearches_perm() {
-  return array('use views savedsearch');
+  return array('create views saved searches', 'view views saved searches', 'delete own saved searches', 'manage views saved searches');
+}
+
+/**
+ * Permission callback for deleting saved searches.
+ */
+function views_savedsearches_perm_delete($sid) {
+  global $user;
+
+  $save_search = views_savedsearches_load($sid);
+  if (user_access('manage views saved searches') || ($save_search->uid == $user->uid && user_access('delete own saved searches'))) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /**
@@ -203,7 +217,7 @@ function views_savedsearches_block($op = 'list', $delta = 0, $edit = array()) {
  * Implementation of hook_views_pre_view().
  */
 function views_savedsearches_views_pre_view(&$view) {
-  if (user_access('use views savedsearch')) {
+  if (user_access('create views saved searches') || user_access('view views saved searches') || user_access('manage views saved searches')) {
     $enabled_views = variable_get('views_savedsearches', array());
     if (empty($enabled_views[$view->name])) {
       return;
@@ -423,13 +437,13 @@ function views_savedsearches_load_multiple($uid = NULL, $view_name = NULL) {
   $query = 'SELECT sid FROM {views_savedsearches} ';
   $sort = ' ORDER BY name';
 
-  if ($uid > 0 && $view_name > 0) {
+  if ($uid > 0 && !is_null($view_name)) {
     $result = db_query("$query WHERE (uid = %d OR public = %d) AND view_name = '%s' $sort", $uid, 1, $view_name);
   }
   elseif ($uid > 0) {
     $result = db_query("$query WHERE uid = %d $sort", $uid);
   }
-  elseif ($view_name > 0) {
+  elseif (!is_null($view_name)) {
     $result = db_query("$query WHERE view_name = '%s' $sort", $view_name);
   }
   else {
@@ -679,7 +693,7 @@ function _views_savedsearches_saved_searches_to_list($saved_searches, $view_url,
 
       $item = l($saved_search->name, $view_url, array('attributes' => array('class' => $class), 'query' => $query));
 
-      if ($saved_search->uid == $user->uid) {
+      if (views_savedsearches_perm_delete($sid)) {
         $item .= ' (' . l('delete', 'saved-search/delete/' . $sid, array('query' => array('destination' => $view_url))) . ')';
       }
 
@@ -717,16 +731,20 @@ function theme_views_savedsearches_container($view, $views_filters_form_values) 
   $current_view_matches_sid = views_savedsearches_sid_by_filters($view_filters, $user->uid);
 
   // The list (also delete saved search form).
-  $output .= '<div class="views-savedsearches-list-ahah">';
-  $output .= theme('views_savedsearches_list', $view, $current_view_matches_sid);
-  $output .= '</div>';
+  if (user_access('view views saved searches') || user_access('manage views saved saved searches')) {
+    $output .= '<div class="views-savedsearches-list-ahah">';
+    $output .= theme('views_savedsearches_list', $view, $current_view_matches_sid);
+    $output .= '</div>';
+  }
 
   // The save search form.
-  $output .= '<div class="views-savedsearches-save-ahah">';
-  if ($current_view_matches_sid == -1 && count($view_filters)) {
-    $output .= drupal_get_form('views_savedsearches_save_search_form', $view);
+  if (user_access('create views saved searches') || user_access('manage views saved saved searches')) {
+    $output .= '<div class="views-savedsearches-save-ahah">';
+    if ($current_view_matches_sid == -1 && count($view_filters)) {
+      $output .= drupal_get_form('views_savedsearches_save_search_form', $view);
+    }
+    $output .= '</div>';
   }
-  $output .= '</div>';
 
   return $output;
 }
@@ -745,7 +763,7 @@ function theme_views_savedsearches_list($view, $current_view_matches_sid) {
   $output = '';
 
   // Load saved searches for the current user, to use them as form options.
-  $saved_searches = views_savedsearches_load_multiple($user->uid, $view->view_name);
+  $saved_searches = views_savedsearches_load_multiple($user->uid, $view->name);
   $list = _views_savedsearches_saved_searches_to_list($saved_searches, $view->get_path(), $current_view_matches_sid);
 
   // Display a list of saved searches (if there are any) and allow the user to
