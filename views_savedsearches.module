@@ -438,7 +438,7 @@ function views_savedsearches_load_multiple($uid = NULL, $vid = NULL) {
   $sort = ' ORDER BY name';
 
   if ($uid > 0 && $vid > 0) {
-    $result = db_query("$query WHERE uid = %d AND vid = %d $sort", $uid, $vid);
+    $result = db_query("$query WHERE (uid = %d OR public = %d) AND vid = %d $sort", $uid, 1, $vid);
   }
   elseif ($uid > 0) {
     $result = db_query("$query WHERE uid = %d $sort", $uid);
