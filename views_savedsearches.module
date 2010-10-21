@@ -70,7 +70,13 @@ function views_savedsearches_menu() {
     'weight' => 5,
     'type' => MENU_LOCAL_TASK
   );
-
+  $items['saved-search/delete/%'] = array(
+    'title' => 'Delete Saved Search',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('views_savedsearches_delete_search_form', 2),
+    'access arguments' => array('use views savedsearch'),
+    'type' => MENU_CALLBACK,
+  );
   return $items;
 }
 
@@ -309,51 +315,32 @@ function views_savedsearches_save_search_form_submit($form, &$form_state) {
 /**
  * Form building callback; the form to delete a search.
  */
-function views_savedsearches_delete_search_form($form_state, $view, $options) {
-  // Save some properties about the current view.
-  $form['variables']['#tree'] = TRUE;
-  $form['variables']['vid'] = array('#type' => 'hidden', '#value' => $view->vid);
+function views_savedsearches_delete_search_form(&$form_state, $sid) {
+  $saved_search = views_savedsearches_load($sid);
 
-  $form['saved_collapse'] = array(
-    '#type' => 'fieldset',
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-    '#title' => t('Saved searches'),
-  );
-  $form['saved_collapse']['saved_searches'] = array(
-    '#type' => 'checkboxes',
-    '#options' => $options,
-    '#attributes' => array(
-      'class' => 'form-checkboxes-horizontal',
-    ),
+  $form['sid'] = array(
+    '#type' => 'value',
+    '#value' => $sid,
   );
 
-  $form['saved_collapse']['delete'] = array(
-    '#type' => 'submit',
-    '#value' => t('Delete'),
+  return confirm_form($form, 
+    t('Are you sure you want to delete saved search %title?', array('%title' => $saved_search->name)), 
+    $_GET['destination'], // Can use this if we ever set a saved-search page isset($_GET['destination']) ? $_GET['destination'] : 'saved-search/' . $saved-search->nid, 
+    t('This action cannot be undone.'), 
+    t('Delete'), 
+    t('Cancel')
   );
-
-  // Make sure we redirect the user to the current view after he has saved the
-  // current search. Without this, he would be redirected to the default view,
-  // i.e. without any exposed filters configured.
-  $form['#redirect'] = $_GET['q'];
-
-  return $form;
 }
 
 /**
  * Form submission callback; for views_savedsearches_delete_search_form.
  */
 function views_savedsearches_delete_search_form_submit($form, &$form_state) {
-  foreach ($form_state['values']['saved_searches'] as $sid => $value) {
-    if ($sid == $value) {
-      $saved_search = views_savedsearches_load($sid);
-      views_savedsearches_delete($sid);
-      drupal_set_message(t('Saved search %name deleted.', array('%name' => $saved_search->name)));
-    }
-  }
+  $sid = $form_state['values']['sid'];
+  $saved_search = views_savedsearches_load($sid);
+  views_savedsearches_delete($sid);
+  drupal_set_message(t('Saved search %name deleted.', array('%name' => $saved_search->name)));
 }
-
 
 //----------------------------------------------------------------------------
 // AHAH functions.
@@ -685,9 +672,7 @@ function _views_savedsearches_configure_ahah($view_name) {
 
 /**
  * Helper function; transforms an array of saved search objects into an array
- * of form options that can be used for a select or checkboxes form item. The
- * key will be the sid (saved search id) and the value a link to the saved
- * search.
+ * of items that can be used to theme an item list.
  *
  * @param $saved_searches
  *   An array of saved search objects.
@@ -696,10 +681,12 @@ function _views_savedsearches_configure_ahah($view_name) {
  * @param $current_view_matches_sid
  *   The saved search id that matches the current view (if any).
  * @return
- *   An array of form options.
+ *   An array of list items.
  */
-function _views_savedsearches_saved_searches_to_form_options($saved_searches, $view_url, $current_view_matches_sid = 0) {
-  $options = array();
+function _views_savedsearches_saved_searches_to_list($saved_searches, $view_url, $current_view_matches_sid = 0) {
+  global $user;
+
+  $items = array();
 
   if (is_array($saved_searches)) {
     foreach ($saved_searches as $sid => $saved_search) {
@@ -708,10 +695,16 @@ function _views_savedsearches_saved_searches_to_form_options($saved_searches, $v
       // If this saved search is active, mark it with a class.
       $class = ($sid == $current_view_matches_sid) ? 'views-savedsearches-is-active' : '';
 
-      $options[$sid] = l($saved_search->name, $view_url, array('attributes' => array('class' => $class), 'query' => $query));
+      $item = l($saved_search->name, $view_url, array('attributes' => array('class' => $class), 'query' => $query));
+
+      if ($saved_search->uid == $user->uid) {
+        $item .= ' (' . l('delete', 'saved-search/delete/' . $sid, array('query' => drupal_get_destination())). ')';
+      }
+
+      $items[] = $item;
     }
   }
-  return $options;
+  return $items;
 }
 
 
@@ -771,12 +764,14 @@ function theme_views_savedsearches_list($view, $current_view_matches_sid) {
 
   // Load saved searches for the current user, to use them as form options.
   $saved_searches = views_savedsearches_load_multiple($user->uid, $view->vid);
-  $options = _views_savedsearches_saved_searches_to_form_options($saved_searches, $view->get_path(), $current_view_matches_sid);
+  $list = _views_savedsearches_saved_searches_to_list($saved_searches, $view->get_path(), $current_view_matches_sid);
 
   // Display a list of saved searches (if there are any) and allow the user to
   // delete any of them.
-  if (count($options)) {
-    $output .= drupal_get_form('views_savedsearches_delete_search_form', $view, $options, $current_view_matches_sid);
+  if (count($list)) {
+    $output .= '<fieldset class="collapsible collapsed"><legend>' . t('Saved Searches') . '</legend>';
+    $output .= theme('item_list', $list);
+    $output .= '</fieldset>';
   }
   else {
     $output .= '<p>'. t('No saved searches found for this view.') .'</p>';
