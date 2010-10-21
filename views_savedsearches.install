@@ -13,7 +13,7 @@ function views_savedsearches_schema() {
   $schema['views_savedsearches'] = array(
     'fields' => array(
       'sid' => array(
-        'type' => 'int',
+        'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
@@ -22,10 +22,11 @@ function views_savedsearches_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
-      'vid' => array(
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
+      'view_name' => array(
+        'type' => 'varchar',
+        'default' => '',
+        'length' => '32',
+        'description' => 'The name of the view.'
       ),
       'display' => array(
         'type' => 'varchar',
@@ -41,6 +42,12 @@ function views_savedsearches_schema() {
       'filters' => array(
         'type' => 'text',
         'size' => 'big',
+      ),
+      'public' => array(
+        'type' => 'int',
+        'default' => 0,
+        'size' => 'tiny',
+        'description' => 'A boolean to indicate whether this saved search is public.'
       ),
     ),
     'primary key' => array('sid'),
@@ -66,6 +73,35 @@ function views_savedsearches_update_6102() {
   );
   $ret = array();
   db_add_field($ret, 'views_savedsearches', 'public', $field);
+  return $ret;
+}
+
+/**
+ * Change column type to support view_name instead of ID.
+ */
+function views_savedsearches_update_6103() {
+  $field = array(
+    'type' => 'varchar',
+    'default' => '',
+    'length' => '32',
+    'description' => 'The name of the view.'
+  );
+  $ret = array();
+  db_change_field($ret, 'views_savedsearches', 'vid', 'view_name', $field);
+  return $ret;
+}
+
+/**
+ * Change the
+ */
+function views_savedsearches_update_6104() {
+  $field = array(
+    'type' => 'serial',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+  );
+  $ret = array();
+  db_change_field($ret, 'views_savedsearches', 'sid', 'sid', $field);
   return $ret;
 }
 
