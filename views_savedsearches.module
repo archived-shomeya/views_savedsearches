@@ -779,3 +779,13 @@ function theme_views_savedsearches_list($view, $current_view_matches_sid) {
 
   return $output;
 }
+
+/**
+ * Implementation of hook_views_api().
+ */
+function views_savedsearches_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'views_savedsearches') . '/views',
+  );
+}
