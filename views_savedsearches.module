@@ -165,12 +165,13 @@ function views_savedsearches_block($op = 'list', $delta = 0, $edit = array()) {
     $block = array();
     switch ($delta) {
       case 'views-savedsearches-per-user':
+        $items = array();
         $uid = (arg(0) == 'user' && is_numeric(arg(1))) ? arg(1) : $user->uid;
         $saved_searches = views_savedsearches_load_multiple($uid);
         foreach ($saved_searches as $sid => $saved_search) {
           if (!empty($saved_search->display)) {
             $query = _views_savedsearches_filters_to_params($saved_search->filters);
-            $view = views_get_view($saved_search->vid);
+            $view = views_get_view($saved_search->view_name);
             if (isset($view->display[$saved_search->display]->display_options['path'])) {
               $path = $view->display[$saved_search->display]->display_options['path'];
               if (!empty($path)) {
@@ -225,7 +226,7 @@ function views_savedsearches_views_pre_view(&$view) {
 function views_savedsearches_save_search_form($form_state, $view) {
   // Save some properties about the current view.
   $form['variables']['#tree'] = TRUE;
-  $form['variables']['vid'] = array('#type' => 'hidden', '#value' => $view->vid);
+  $form['variables']['view_name'] = array('#type' => 'hidden', '#value' => $view->name);
   $form['variables']['display'] = array('#type' => 'hidden', '#value' => $view->current_display);
   // This is needed for the non-AHAH form submit.
   $form['variables']['exposed_filters'] = array('#type' => 'value', '#value' => serialize(_views_savedsearches_params_to_filters($view, $_GET)));
@@ -269,7 +270,6 @@ function views_savedsearches_save_search_form($form_state, $view) {
   if (!empty($query)) {
     $form['#redirect'][1] = implode('&', $query);
   }
-
   return $form;
 }
 
@@ -293,9 +293,8 @@ function views_savedsearches_save_search_form_submit($form, &$form_state) {
 
   // Create a new saved search object.
   $saved_search = new stdClass();
-  $saved_search->sid = 'new';
   $saved_search->uid = $user->uid;
-  $saved_search->vid = $form_state['values']['variables']['vid'];
+  $saved_search->view_name = $form_state['values']['variables']['view_name'];
   $saved_search->display = $form_state['values']['variables']['display'];
   $saved_search->public = $form_state['values']['public'];
   $saved_search->name = $form_state['values']['name'];
@@ -312,7 +311,7 @@ function views_savedsearches_save_search_form_submit($form, &$form_state) {
 function views_savedsearches_delete_search_form($form_state, $view, $options) {
   // Save some properties about the current view.
   $form['variables']['#tree'] = TRUE;
-  $form['variables']['vid'] = array('#type' => 'hidden', '#value' => $view->vid);
+  $form['variables']['view_name'] = array('#type' => 'hidden', '#value' => $view->name);
 
   $form['saved_collapse'] = array(
     '#type' => 'fieldset',
@@ -362,7 +361,7 @@ function views_savedsearches_delete_search_form_submit($form, &$form_state) {
  * AHAH callback; for both the save search and delete saved search form.
  */
 function views_savedsearches_ahah($action) {
-  $vid = $_POST['variables']['vid'];
+  $view_name = $_POST['variables']['view_name'];
   $views_filters_form_values = array();
 
   parse_str($_POST['views_filters_form'], $views_filters_form_values);
@@ -386,7 +385,7 @@ function views_savedsearches_ahah($action) {
   $_POST = array();
 
   // Output.
-  $view = views_get_view($vid);
+  $view = views_get_view($view_name);
 
   $output = '';
   $output .= theme('status_messages');
@@ -426,25 +425,25 @@ function views_savedsearches_load($sid) {
  *
  * @param $uid
  *  A user id.
- * @param $vid
+ * @param $view_name
  *  A view id.
  * @return
  *  An array of saved search objects.
  */
-function views_savedsearches_load_multiple($uid = NULL, $vid = NULL) {
+function views_savedsearches_load_multiple($uid = NULL, $view_name = NULL) {
   $saved_searches = array();
 
   $query = 'SELECT sid FROM {views_savedsearches} ';
   $sort = ' ORDER BY name';
 
-  if ($uid > 0 && $vid > 0) {
-    $result = db_query("$query WHERE (uid = %d OR public = %d) AND vid = %d $sort", $uid, 1, $vid);
+  if ($uid > 0 && $view_name > 0) {
+    $result = db_query("$query WHERE (uid = %d OR public = %d) AND view_name = '%s' $sort", $uid, 1, $view_name);
   }
   elseif ($uid > 0) {
     $result = db_query("$query WHERE uid = %d $sort", $uid);
   }
-  elseif ($vid > 0) {
-    $result = db_query("$query WHERE vid = %d $sort", $vid);
+  elseif ($view_name > 0) {
+    $result = db_query("$query WHERE view_name = '%s' $sort", $view_name);
   }
   else {
     $result = db_query($query . $sort);
@@ -457,27 +456,27 @@ function views_savedsearches_load_multiple($uid = NULL, $vid = NULL) {
 }
 
 /**
- * Get the number of saved searches, by uid, vid, both or none of both (this
+ * Get the number of saved searches, by uid, view_name, both or none of both (this
  * is the equivalent of getting the total count).
  *
  * @param $uid
  *  A user id.
- * @param $vid
+ * @param $view_name
  *  View id.
  * @return
  *  The count of saved searches, depending on the passed user id and view id.
  */
-function views_savedsearches_count($uid = NULL, $vid = NULL) {
+function views_savedsearches_count($uid = NULL, $view_name = NULL) {
   $query = 'SELECT COUNT(sid) FROM {views_savedsearches}';
 
-  if ($uid > 0 && $vid > 0) {
-    $result = db_query("$query WHERE uid = %d AND vid = %d", $uid, $vid);
+  if ($uid > 0 && $view_name > 0) {
+    $result = db_query("$query WHERE uid = %d AND view_name = '%s'", $uid, $view_name);
   }
   elseif ($uid > 0) {
     $result = db_query("$query WHERE uid = %d", $uid);
   }
-  elseif ($vid > 0) {
-    $result = db_query("$query WHERE vid = %d", $vid);
+  elseif ($view_name > 0) {
+    $result = db_query("$query WHERE view_name = '%s'", $view_name);
   }
   else {
     $result = db_query($query);
@@ -510,27 +509,11 @@ function views_savedsearches_delete($sid) {
  *   A saved search id.
  */
 function views_savedsearches_save($saved_search) {
-  if ($saved_search->sid && $saved_search->sid != 'new') {
-    db_query("UPDATE {views_savedsearches} SET uid = %d, vid = %d, name = '%s', filters = '%s' WHERE sid = %d",
-      $saved_search->uid,
-      $saved_search->vid,
-      $saved_search->name,
-      $saved_search->filters,
-      $saved_search->public,
-      $saved_search->sid
-    );
+  if (empty($saved_search->sid)) {
+    drupal_write_record('views_savedsearches', $saved_search);
   }
   else {
-    $saved_search->sid = db_result(db_query('SELECT MAX(sid) + 1 from {views_savedsearches}'));
-    db_query("INSERT INTO {views_savedsearches} (sid, uid, vid, display, name, filters, public) VALUES(%d, %d, %d, '%s', '%s', '%s', %d)",
-      $saved_search->sid,
-      $saved_search->uid,
-      $saved_search->vid,
-      $saved_search->display,
-      $saved_search->name,
-      $saved_search->filters,
-      $saved_search->public
-    );
+    drupal_write_record('views_savedsearches', $saved_search, 'sid');
   }
   return $saved_search->sid;
 }
@@ -567,8 +550,7 @@ function views_savedsearches_sid_by_filters($filters, $uid = FALSE) {
  * Form submission callback; for the views_edit_view form.
  */
 function _views_savedsearches_views_edit_form_submit(&$form, &$form_values) {
-  dsm($form_values);
-  db_query("DELETE FROM {views_savedsearches} WHERE vid = %d", $form_values['vid']);
+  db_query("DELETE FROM {views_savedsearches} WHERE view_name = '%s'", $form_values['view_name']);
 }
 
 /**
@@ -770,7 +752,7 @@ function theme_views_savedsearches_list($view, $current_view_matches_sid) {
   $output = '';
 
   // Load saved searches for the current user, to use them as form options.
-  $saved_searches = views_savedsearches_load_multiple($user->uid, $view->vid);
+  $saved_searches = views_savedsearches_load_multiple($user->uid, $view->view_name);
   $options = _views_savedsearches_saved_searches_to_form_options($saved_searches, $view->get_path(), $current_view_matches_sid);
 
   // Display a list of saved searches (if there are any) and allow the user to
