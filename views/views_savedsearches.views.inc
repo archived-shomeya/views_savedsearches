@@ -15,6 +15,12 @@ function views_savedsearches_views_data() {
 
   $data['views_savedsearches']['table']['group']  = t('Views Saved Searches');
 
+  $data['views_savedsearches']['table']['base'] = array(
+    'field' => 'sid',
+    'title' => t('Views saved searches'),
+    'help' => t('Saved searches associated with users and/or views.')
+  );
+
   $data['views_savedsearches']['sid'] = array(
     'title' => t('Sid'),
     'help' => t('The ID of the saved search.'), // The help that appears on the UI,
@@ -156,7 +162,7 @@ function views_savedsearches_views_data_alter(&$data) {
 /**
  * Implementation of hook_views_handlers().
  */
-function project_views_handlers() {
+function views_savedsearches_views_handlers() {;
   return array(
     'info' => array(
       'path' => drupal_get_path('module', 'views_savedsearches') .'/views/handlers',
