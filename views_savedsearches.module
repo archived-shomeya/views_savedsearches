@@ -574,7 +574,9 @@ function _views_savedsearches_filters_to_params($filters) {
             $query .= '&';
           }
           if (!is_array($value)) {
-            $query .= drupal_urlencode($filter_name) . drupal_urlencode('[]') .'='. drupal_urlencode($value);
+            $query .= drupal_urlencode($filter_name);
+            $query .= drupal_urlencode('[' . (!is_int($key) ? $key : '') . ']');
+            $query .= '='. drupal_urlencode($value);
           }
           else {
             // Date-style parameter, like date_filter[value][date]=2009-05-11 in the URL encoded
