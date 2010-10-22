@@ -128,12 +128,10 @@ function views_savedsearches_views_data() {
 }
 
 function views_savedsearches_views_data_alter(&$data) {
-  $data['users']['table']['join'] = array(
-    'views_savedsearches' => array(
-      'left_field' => 'uid',
-      'field' => 'uid',
-      'type' => 'INNER',
-    ),
+  $data['users']['table']['join']['views_savedsearches'] = array(
+    'left_field' => 'uid',
+    'field' => 'uid',
+    'type' => 'INNER',
   );
 }
 
