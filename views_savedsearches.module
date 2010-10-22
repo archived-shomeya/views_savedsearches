@@ -26,9 +26,6 @@ define('AHAH_PATH_SAVE', 'views_savedsearches_ahah/save');
 /**
  * Implementation of hook_help().
  */
-/**
- * Implementation of hook_help().
- */
 function views_savedsearches_help($path, $arg) {
   $output = '';
 
@@ -428,23 +425,25 @@ function views_savedsearches_load($sid) {
  *  A user id.
  * @param $view_name
  *  A view id.
+ * @param $view_display
+ *  A view display id.
  * @return
  *  An array of saved search objects.
  */
-function views_savedsearches_load_multiple($uid = NULL, $view_name = NULL) {
+function views_savedsearches_load_multiple($uid = NULL, $view_name = NULL, $view_display = NULL) {
   $saved_searches = array();
 
   $query = 'SELECT sid FROM {views_savedsearches} ';
   $sort = ' ORDER BY name';
 
   if ($uid > 0 && !is_null($view_name)) {
-    $result = db_query("$query WHERE (uid = %d OR public = %d) AND view_name = '%s' $sort", $uid, 1, $view_name);
+    $result = db_query("$query WHERE (uid = %d OR public = %d) AND view_name = '%s' AND display = '%s' $sort", $uid, 1, $view_name, $view_display);
   }
   elseif ($uid > 0) {
     $result = db_query("$query WHERE uid = %d $sort", $uid);
   }
   elseif (!is_null($view_name)) {
-    $result = db_query("$query WHERE view_name = '%s' $sort", $view_name);
+    $result = db_query("$query WHERE view_name = '%s' AND display = '%s' $sort", $view_name, $view_display);
   }
   else {
     $result = db_query($query . $sort);
@@ -763,7 +762,7 @@ function theme_views_savedsearches_list($view, $current_view_matches_sid) {
   $output = '';
 
   // Load saved searches for the current user, to use them as form options.
-  $saved_searches = views_savedsearches_load_multiple($user->uid, $view->name);
+  $saved_searches = views_savedsearches_load_multiple($user->uid, $view->name, $view->current_display);
   $list = _views_savedsearches_saved_searches_to_list($saved_searches, $view->get_path(), $current_view_matches_sid);
 
   // Display a list of saved searches (if there are any) and allow the user to
