@@ -247,6 +247,9 @@ function views_savedsearches_save_search_form($form_state, $view) {
   $form['variables']['display'] = array('#type' => 'hidden', '#value' => $view->current_display);
   // This is needed for the non-AHAH form submit.
   $form['variables']['exposed_filters'] = array('#type' => 'value', '#value' => serialize(_views_savedsearches_params_to_filters($view, $_GET)));
+  // Store sorting parameters for inclusion within filters.
+  $form['variables']['order'] = array('#type' => 'hidden', '#value' => $_GET['order']);
+  $form['variables']['sort'] = array('#type' => 'hidden', '#value' => $_GET['sort']);
 
   $form['name'] = array(
     '#type' => 'textfield',
@@ -315,7 +318,7 @@ function views_savedsearches_save_search_form_submit($form, &$form_state) {
   $saved_search->display = $form_state['values']['variables']['display'];
   $saved_search->public = $form_state['values']['public'];
   $saved_search->name = $form_state['values']['name'];
-  $saved_search->filters = $form_state['values']['variables']['exposed_filters'];
+  $saved_search->filters = serialize($form_state['values']['variables']['exposed_filters']);
 
   views_savedsearches_save($saved_search);
 
@@ -364,7 +367,14 @@ function views_savedsearches_ahah($action) {
   $views_filters_form_values = array();
 
   parse_str($_POST['views_filters_form'], $views_filters_form_values);
-  $_POST['variables']['exposed_filters'] = serialize($views_filters_form_values);
+  // Add order parameters to preserve sorting.
+  if ($_POST['variables']['order']) {
+    $views_filters_form_values['order'] = $_POST['variables']['order'];
+  }
+  if ($_POST['variables']['sort']) {
+    $views_filters_form_values['sort'] = $_POST['variables']['sort'];
+  }
+  $_POST['variables']['exposed_filters'] = $views_filters_form_values;
 
   // Submit the save form with $_POST instead of $form_values.
   $form_state = array(
