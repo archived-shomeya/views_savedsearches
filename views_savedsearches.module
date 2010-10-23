@@ -360,6 +360,7 @@ function views_savedsearches_delete_search_form_submit($form, &$form_state) {
  */
 function views_savedsearches_ahah($action) {
   $view_name = $_POST['variables']['view_name'];
+  $display = $_POST['variables']['display'];
   $views_filters_form_values = array();
 
   parse_str($_POST['views_filters_form'], $views_filters_form_values);
@@ -384,6 +385,7 @@ function views_savedsearches_ahah($action) {
 
   // Output.
   $view = views_get_view($view_name);
+  $view->set_display($display);
 
   $output = '';
   $output .= theme('status_messages');
